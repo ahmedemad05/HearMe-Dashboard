@@ -1,0 +1,9 @@
+{
+  "name": "hearme-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HearMe ESP32-S3 TinyML wearable dashboard with Wi-Fi, USB serial and SQLite persistence",
+  "main": "server.js",
+  "scripts": {"start": "node server.js", "dev": "node --watch server.js"},
+  "dependencies": {"better-sqlite3": "^11.8.1", "express": "^4.21.2", "ws": "^8.18.0"}
+}

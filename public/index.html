@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HearMe | Smart Assistive Wearable Dashboard</title>
+<meta name="theme-color" content="#080B12">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* CSS Variables & Base Setup */
+:root {
+    color-scheme: dark;
+    --bg: #090e17;
+    --panel: #111826;
+    --panel2: #1a2332;
+    --line: #2a364a;
+    --tx: #e2e8f0;
+    --mut: #8b9bb4;
+    --cy: #00D9FF;
+    --bl: #387BFF;
+    --gr: #00F5A0;
+    --am: #FFB547;
+    --rd: #FF4655;
+    --r: 12px;
+    --sans: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+    box-sizing: border-box;
+}
+
+/* Scrollbar customization */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--mut); }
+
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+
+body {
+    margin: 0;
+    background: var(--bg);
+    background-image: radial-gradient(circle at top right, #111826, #090e17 50%);
+    color: var(--tx);
+    font: 14px/1.5 var(--sans);
+    min-height: 100vh;
+}
+
+.mono { font-family: var(--mono); }
+
+/* Header & Navigation */
+header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(17, 24, 38, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand b { font-size: 20px; letter-spacing: 0.15em; color: #fff; }
+.brand small { display: block; color: var(--cy); letter-spacing: 0.22em; font-size: 10px; font-weight: 600; }
+
+.sp { flex: 1; }
+
+.pill {
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border: 1px solid var(--line);
+    background: var(--panel2);
+    border-radius: 99px;
+    font: 500 12px var(--mono);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--mut); }
+.s-connected .dot { background: var(--gr); box-shadow: 0 0 10px var(--gr); }
+.s-connecting .dot { background: var(--am); animation: bl 1s infinite alternate; }
+.s-error .dot { background: var(--rd); box-shadow: 0 0 10px var(--rd); }
+
+@keyframes bl { from { opacity: 1; } to { opacity: 0.3; } }
+
+.demo-badge {
+    display: none;
+    border-color: var(--am);
+    color: var(--am);
+    background: rgba(255, 181, 71, 0.1);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+}
+body.demo .demo-badge { display: inline-flex; }
+
+button, select {
+    font: 600 13px var(--sans);
+    color: var(--tx);
+    background: var(--panel2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 16px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+button:hover:not(:disabled) {
+    border-color: var(--cy);
+    background: rgba(0, 217, 255, 0.05);
+    transform: translateY(-1px);
+}
+button:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; transform: none; }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--cy); outline-offset: 2px; }
+
+.pri {
+    background: rgba(0, 217, 255, 0.15);
+    border-color: var(--cy);
+    color: var(--cy);
+    text-shadow: 0 0 8px rgba(0, 217, 255, 0.3);
+}
+.pri:hover:not(:disabled) { background: rgba(0, 217, 255, 0.25); box-shadow: 0 0 12px rgba(0, 217, 255, 0.2); }
+
+/* Main Grid Layout */
+main {
+    padding: 24px;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 20px;
+    max-width: 1600px;
+    margin: auto;
+}
+
+.card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 24px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.card:hover { border-color: #36445d; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3); }
+
+/* Grid Spans */
+.c3 { grid-column: span 3; }
+.c4 { grid-column: span 4; }
+.c5 { grid-column: span 5; }
+.c7 { grid-column: span 7; }
+.c8 { grid-column: span 8; }
+
+/* Responsive Grid */
+@media(max-width: 1300px) {
+    .c3 { grid-column: span 4; }
+    .c4 { grid-column: span 6; }
+    .c5 { grid-column: span 12; }
+    .c7 { grid-column: span 12; }
+    .c8 { grid-column: span 12; }
+}
+@media(max-width: 900px) {
+    .c3, .c4, .c5, .c7, .c8 { grid-column: span 12; }
+}
+
+/* Card Content & Typography */
+h2 {
+    margin: 0;
+    font-size: 13px;
+    letter-spacing: 0.15em;
+    color: var(--mut);
+    font-weight: 700;
+    text-transform: uppercase;
+}
+h2 + small {
+    display: block;
+    color: var(--mut);
+    font-size: 12px;
+    margin: 4px 0 16px;
+    opacity: 0.7;
+}
+
+.big {
+    font: 700 36px/1 var(--mono);
+    margin: 8px 0;
+    color: #fff;
+}
+.big span { font-size: 16px; color: var(--mut); margin-left: 6px; font-weight: 500; }
+
+.row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--mut);
+    margin-top: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px dashed rgba(255,255,255,0.05);
+}
+.row:last-of-type { border-bottom: none; }
+.row b { color: var(--tx); font: 500 13px var(--mono); }
+
+/* Progress Bars */
+.bar {
+    height: 8px;
+    background: var(--panel2);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 14px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+}
+.bar i {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, #00D9FF, #387BFF);
+    border-radius: 6px;
+    transition: width 0.4s ease-out;
+}
+
+.tag {
+    font: 600 11px var(--mono);
+    letter-spacing: 0.1em;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    color: var(--mut);
+    background: var(--panel2);
+}
+.tag.d { color: var(--am); border-color: rgba(255, 181, 71, 0.3); background: rgba(255, 181, 71, 0.05); }
+.tag.l { color: var(--gr); border-color: rgba(0, 245, 160, 0.3); background: rgba(0, 245, 160, 0.05); }
+#wtag { align-self: flex-start; }
+
+body.demo .tel h2::after, body.demo #ai h2::after, body.demo .hap h2::after {
+    content: " · SIMULATED";
+    color: var(--am);
+}
+
+/* Canvas & Visuals */
+canvas {
+    width: 100%;
+    height: 200px;
+    display: block;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    margin-top: auto;
+}
+
+.vu {
+    height: 16px;
+    background: var(--panel2);
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+}
+.vu i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0;
+    background: linear-gradient(90deg, var(--gr), var(--cy) 60%, var(--am) 85%, var(--rd));
+    transition: width 0.1s linear;
+}
+.vu u {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: #fff;
+    left: 0;
+    box-shadow: 0 0 5px #fff;
+    border-radius: 2px;
+}
+
+/* AI Classification Ring */
+.aigrid { display: flex; gap: 32px; align-items: center; flex-wrap: wrap; flex: 1; }
+.ring { position: relative; width: 160px; height: 160px; flex: none; drop-shadow: 0 0 10px rgba(0,217,255,0.2); }
+.ring svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+.ring circle { fill: none; stroke-width: 10; }
+.ring .bg { stroke: var(--panel2); }
+.ring .fg {
+    stroke: var(--ac, var(--cy));
+    stroke-linecap: round;
+    stroke-dasharray: 326.7;
+    stroke-dashoffset: 326.7;
+    transition: stroke-dashoffset 0.7s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s;
+}
+.ring div {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font: 700 28px var(--mono);
+    color: #fff;
+}
+#cls { font: 700 28px/1.2 var(--sans); color: var(--ac, var(--cy)); margin-bottom: 12px; }
+
+.card.alert { animation: pulse 1s 2; border-color: var(--ac); }
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(var(--ac), 0.4); }
+    70% { box-shadow: 0 0 20px 10px rgba(var(--ac), 0); }
+    100% { box-shadow: 0 0 0 0 rgba(var(--ac), 0); }
+}
+
+/* Tables & Logs */
+.tools { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+.tw {
+    max-height: 380px;
+    overflow-y: auto;
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--bg);
+}
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th {
+    position: sticky;
+    top: 0;
+    background: var(--panel2);
+    text-align: left;
+    color: #fff;
+    font: 600 11px var(--sans);
+    letter-spacing: 0.1em;
+    padding: 12px 16px;
+    z-index: 10;
+    box-shadow: 0 1px 0 var(--line);
+}
+td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+    transition: background 0.15s;
+}
+tr:hover td { background: rgba(255,255,255,0.03); }
+tr:last-child td { border-bottom: none; }
+tr.new { animation: ins 0.5s ease-out; }
+@keyframes ins { from { opacity: 0; transform: translateY(-10px); background: rgba(0, 217, 255, 0.15); } }
+
+.empty { padding: 40px; text-align: center; color: var(--mut); font-size: 14px; }
+
+/* Haptic Buttons */
+.hap { grid-column: span 4; }
+.hp { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.hb {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 16px;
+    text-align: left;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    border: 1px solid color-mix(in srgb, var(--c) 30%, transparent);
+    color: var(--c);
+    background: color-mix(in srgb, var(--c) 5%, var(--panel));
+    border-radius: 10px;
+    transition: all 0.2s ease;
+}
+.hb:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--c) 10%, var(--panel));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--c) 15%, transparent);
+    border-color: var(--c);
+}
+.hb:active:not(:disabled) { transform: scale(0.97); }
+.hb svg { width: 28px; height: 28px; stroke: currentColor; fill: none; stroke-width: 1.8; margin-bottom: 4px; }
+.hb span { display: block; width: 100%; }
+.hb small { display: block; font: 400 12px var(--sans); color: var(--mut); letter-spacing: 0; margin-top: 4px; }
+.hb.busy { opacity: 0.6; cursor: wait; transform: none; box-shadow: none; }
+
+#hmsg {
+    min-height: 36px;
+    font: 13px var(--mono);
+    color: var(--mut);
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--bg);
+    border-radius: 8px;
+    border: 1px dashed var(--line);
+}
+
+/* Dialog & Alerts */
+#err {
+    display: none;
+    margin: 20px 24px 0;
+    padding: 12px 16px;
+    border: 1px solid var(--rd);
+    border-radius: 10px;
+    color: #ffb3ba;
+    background: rgba(255, 70, 85, 0.1);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+dialog {
+    background: var(--panel);
+    color: var(--tx);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    max-width: 820px;
+    width: 92vw;
+    max-height: 86vh;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    padding: 30px;
+}
+dialog::backdrop { background: rgba(0, 5, 12, 0.8); backdrop-filter: blur(4px); }
+dialog h3 { color: var(--cy); margin: 24px 0 12px; font-size: 14px; letter-spacing: 0.1em; }
+dialog p { color: var(--mut); line-height: 1.6; }
+dialog li { margin: 6px 0; color: #cbd5e1; line-height: 1.5; }
+pre {
+    background: var(--bg);
+    padding: 16px;
+    border-radius: 8px;
+    overflow: auto;
+    font: 13px/1.6 var(--mono);
+    color: #93c5fd;
+    border: 1px solid var(--line);
+}
+
+/* Presentation Mode */
+body.pres .dev, body.pres .tools .dev { display: none !important; }
+body.pres { font-size: 18px; }
+body.pres .big { font-size: 48px; }
+body.pres canvas { height: 260px; }
+body.pres #cls { font-size: 44px; }
+body.pres .tw { max-height: 300px; }
+
+/* Refined Responsive Adjustments */
+@media(max-width: 650px) {
+    header { padding: 16px; flex-direction: column; align-items: stretch; }
+    header .brand { margin-bottom: 10px; justify-content: center; }
+    header .sp { display: none; }
+    .tools { justify-content: stretch; }
+    .tools select, .tools button { flex: 1; }
+    .aigrid { justify-content: center; text-align: center; }
+    #cls { font-size: 24px; }
+    .row { flex-direction: column; align-items: flex-start; gap: 4px; }
+    .row b { align-self: flex-start; }
+    .tw { max-height: 300px; }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="brand">
+    <svg width="38" height="38" viewBox="0 0 38 38" fill="none" stroke="#00D9FF" stroke-width="2" stroke-linecap="round"><path d="M10 26c-3-2-4-5-4-8a13 13 0 0126 0c0 4-2 6-4 8-2 1-3 3-3 5"/><path d="M13 18a6 6 0 0112 0c0 3-2 4-3 5"/><circle cx="19" cy="18" r="1.4" fill="#00D9FF"/></svg>
+    <div><b>HEARME</b><small>AI EDGE COMMAND CENTER</small></div>
+  </div>
+  <span class="pill demo-badge" id="dbadge">● DEMO MODE · SIMULATED</span>
+  <div class="sp"></div>
+  <span class="pill s-disconnected" id="cpill"><i class="dot"></i><span id="cst">DISCONNECTED</span> · ESP32-S3 DEVICE</span>
+  <span class="pill dev mono">Link <b id="dur" style="font-weight:500">—</b></span>
+  <span class="pill mono"><span id="lpl">Last packet</span> <b id="lastp" style="font-weight:500">—</b></span>
+  <select id="baud" class="dev" aria-label="Baud rate" title="Must match firmware"><option>115200</option><option>921600</option><option>460800</option><option>230400</option><option>9600</option></select>
+  <button class="pri" id="bcon">Connect Device</button>
+  <button id="bdis" disabled>Disconnect</button>
+  <button id="bdemo" aria-pressed="false">Demo Mode: Off</button>
+  <button id="bpres">Presentation</button>
+  <button id="bfs" class="dev">Full screen</button>
+  <button id="bproto" class="dev">Protocol</button>
+</header>
+
+<div id="err" role="alert"></div>
+
+<main>
+  <section class="card c3"><h2>ANALYSIS WINDOWS</h2><small>Total model inference windows</small><div class="big" id="inferCount">0</div><div class="row">Source <b id="inferSource">Waiting for device</b></div></section>
+  <section class="card c3"><h2>DETECTIONS</h2><small>Confirmed sound events</small><div class="big" id="detectCount">0</div><div class="row">False-alarm review <b id="falseReview">Manual</b></div></section>
+  <section class="card c3"><h2>WIFI LINK</h2><small>Device network status</small><div class="big" id="wifiStatus" style="font-size:26px">Offline</div><div class="row">IP <b id="wifiIp">N/A</b></div><div class="row">RSSI <b id="wifiRssi">N/A</b></div></section>
+  <section class="card c3"><h2>DATABASE</h2><small>Persistent experiment storage</small><div class="big" id="dbStatus" style="font-size:26px">Checking…</div><div class="row">Saved events <b id="dbEvents">—</b></div></section>
+
+  <section class="card c3 tel"><h2>BATTERY</h2><small>Voltage · estimated charge</small>
+    <div class="big"><span id="bv" style="margin:0;color:inherit;font-size:inherit">N/A</span><span>V</span></div>
+    <div class="row">Charge <b id="bp">N/A</b></div><div class="bar"><i id="bbar"></i></div><div class="row"><span>Source</span><b id="bsrc" class="tag">—</b></div></section>
+  <section class="card c3 tel"><h2>MEMORY</h2><small>PSRAM</small>
+    <div class="big"><span id="pf" style="margin:0;color:inherit;font-size:inherit">N/A</span><span>free</span></div>
+    <div class="row">Total <b id="pt">N/A</b></div><div class="row">Utilisation <b id="pu">N/A</b></div><div class="bar"><i id="pbar" style="background:var(--bl)"></i></div></section>
+  <section class="card c3 tel"><h2>PROCESSING LATENCY</h2><small>Firmware-reported (latency_ms field)</small>
+    <div class="big"><span id="lc" style="margin:0;color:inherit;font-size:inherit">N/A</span><span>ms</span></div>
+    <div class="row">Average <b id="la">N/A</b></div><div class="row">Maximum <b id="lm">N/A</b></div><div class="row"><span>Command round-trip</span><b id="lr">N/A</b></div><div class="row"><span>USB / end-to-end</span><b>Not measured</b></div></section>
+  <section class="card c3 tel"><h2>DEVICE HEALTH</h2><small>ESP32-S3 status</small>
+    <div class="big" id="hs" style="font-size:26px">NO DATA</div>
+    <div class="row">Firmware <b id="fw">N/A</b></div><div class="row">Uptime <b id="up">N/A</b></div><div class="row">Last telemetry <b id="lt">N/A</b></div></section>
+
+  <section class="card c7"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><h2>LIVE AUDIO TELEMETRY</h2><small>INMP441 DIGITAL MICROPHONE · REAL-TIME SIGNAL ANALYSIS</small></div><span class="tag" id="wtag">NO SOURCE</span></div>
+    <canvas id="cv"></canvas>
+    <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:18px;align-items:center;margin-top:20px">
+      <div><div class="vu"><i id="vui"></i><u id="vup"></u></div></div>
+      <div class="row" style="margin:0; border: none; padding: 0;">RMS <b id="rms">N/A</b></div><div class="row" style="margin:0; border: none; padding: 0;">Peak <b id="pk">N/A</b></div><span class="pill" id="sig">Awaiting data</span></div></section>
+
+  <section class="card c5" id="ai"><h2>AI SOUND INTELLIGENCE</h2><small>On-device classification</small>
+    <div class="aigrid"><div class="ring"><svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="52"/><circle class="fg" id="rf" cx="60" cy="60" r="52"/></svg><div id="cf">—</div></div>
+    <div style="flex:1;min-width:150px"><div id="cls">Awaiting AI Classification</div><div class="row"><span>State</span><b id="cst2">—</b></div><div class="row"><span>Detected</span><b id="cts">—</b></div><div class="row"><span>Haptic</span><b id="chp">—</b></div></div></div></section>
+
+  <section class="card c8"><h2>LIVE DETECTION HISTORY</h2><small>Events from firmware (or Demo Mode, tagged)</small>
+    <div class="tools"><select id="flt" aria-label="Filter"><option value="">All events</option><option>Knocking</option><option>Doorbell</option><option>Name Call</option><option>Fire Alarm</option><option>Unknown Sound</option></select><button id="bcsv">Export CSV</button><button id="bclr">Clear history</button><span class="tag" id="cnt">0 events</span><span class="mono" id="lmsg" style="font-size:12px;color:var(--mut)"></span></div>
+    <div class="tw"><table><thead><tr><th>TIMESTAMP</th><th>EVENT</th><th>CONFIDENCE</th><th>LATENCY</th><th>HAPTIC</th><th>STATUS</th></tr></thead><tbody id="tb"></tbody></table><div class="empty" id="emp">No events yet. Enable Demo Mode or connect a device.</div></div></section>
+
+  <section class="card c4 hap"><h2>HAPTIC FEEDBACK CONTROL</h2><small>MANUAL DEVICE TESTING</small>
+    <div class="hp">
+      <button class="hb" style="--c:var(--am)" data-c="test_doorbell"><svg viewBox="0 0 24 24"><path d="M6 17V11a6 6 0 0112 0v6l2 2H4z"/><path d="M10 21h4"/></svg><span>TEST DOORBELL HAPTIC<small>Command: test_doorbell</small></span></button>
+      <button class="hb" style="--c:var(--bl)" data-c="test_name_call"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg><span>TEST NAME CALL HAPTIC<small>Command: test_name_call</small></span></button>
+      <button class="hb" style="--c:var(--rd)" data-c="test_fire_alarm"><svg viewBox="0 0 24 24"><path d="M12 3c1 4 5 5 5 10a5 5 0 01-10 0c0-2 1-3 2-4 0 2 1 2 1 2 0-3 1-5 2-8z"/></svg><span>TEST FIRE ALARM HAPTIC<small>Command: test_fire_alarm</small></span></button>
+    </div><div id="hmsg">Idle. Success is shown only when the device acknowledges.</div></section>
+</main>
+
+<dialog id="dlg"><div style="display:flex;justify-content:space-between;align-items:center"><b style="color:var(--cy)">SERIAL PROTOCOL — JSON LINES</b><button class="pri" id="dx">Close</button></div>
+<p>One JSON object per line, UTF-8, terminated by <code>\n</code>, at the configured baud rate (default 115200; firmware must match). Unknown types and malformed lines are ignored. Fields not sent display as N/A. Untested against real hardware.</p>
+<h3>DEVICE → DASHBOARD</h3><pre>{"type":"telemetry","device":"ESP32-S3","firmware":"0.1.0","uptime_ms":120000,
+ "battery_voltage":4.12,"battery_percent":95,"free_psram":8192000,"total_psram":8388608,
+ "rms":0.042,"samples":[...optional int/float array...],"latency_ms":118}
+{"type":"detection","event":"doorbell","confidence":0.924,"latency_ms":118,"haptic_pattern":"doorbell"}
+{"type":"ack","command":"test_doorbell","status":"success"}</pre>
+<p>Events: <code>doorbell, name_call, fire_alarm, unknown</code>. Only <code>detection</code> packets create log rows; telemetry never does. <code>samples</code> (optional) enables a true waveform; otherwise an RMS trace is drawn and labelled as such.</p>
+<h3>DASHBOARD → DEVICE</h3><pre>{"type":"command","command":"test_doorbell"}   // also test_name_call, test_fire_alarm</pre>
+<h3>FIRMWARE CHANGES REQUIRED</h3><ul><li>Emit telemetry at \~10–20 Hz with RMS computed from INMP441 I²S frames.</li><li>Emit detection packets once per confirmed classification.</li><li>Parse command lines, drive the vibration motor, reply with an ack only after the pattern starts.</li><li>Battery percentage only if the cell chemistry/ADC calibration is known.</li></ul>
+<h3>HARDWARE TEST CHECKLIST</h3><ul><li>Connect over USB in Chrome/Edge (Web Serial needs HTTPS or localhost; assets can then run offline).</li><li>Verify telemetry updates, RMS responds to speech, N/A for missing fields.</li><li>Verify each haptic test produces a motor pattern and an ack; unplug mid-session.</li></ul></dialog>
+
+<script>
+
+const $=id=>document.getElementById(id);
+
+const CLS={knocking:{n:'Knocking',c:'#B78BFA',h:'knocking'},doorbell:{n:'Doorbell',c:'#FFB547',h:'doorbell'},name_call:{n:'Name Call',c:'#387BFF',h:'name_call'},fire_alarm:{n:'Fire Alarm',c:'#FF4655',h:'fire_alarm'},unknown:{n:'Unknown Sound',c:'#7d8ba5',h:'none'}};
+
+const S={demo:false,conn:'disconnected',since:0,last:0,rms:null,hist:new Array(300).fill(0),samples:null,peak:0,vu:0,ev:[],lat:[],port:null,reader:null,pend:{},seen:{},t0:Date.now(),d:null,clsT:0};
+
+const num=x=>typeof x==='number'&&isFinite(x)?x:null;
+
+const esc=s=>String(s).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
+
+const ts0=d=>new Date(d).toLocaleTimeString('en-GB',{hour12:false});
+
+const ts=d=>new Date(d).toLocaleTimeString('en-GB',{hour12:false})+'.'+String(new Date(d).getMilliseconds()).padStart(3,'0');
+
+const dur=ms=>{const s=Math.floor(ms/1000);return[Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(v=>String(v).padStart(2,'0')).join(':')};
+
+const T={bv:null,bp:null,pf:null,pt:null,lc:null,up:null,fw:null,lt:null,src:''};
+
+function showErr(m){const e=$('err');e.textContent=m||'';e.style.display=m?'block':'none'}
+
+function setConn(s,m){S.conn=s;$('cpill').className='pill s-'+s;$('cst').textContent=s.toUpperCase().replace('ERROR','CONNECTION ERROR');$('bcon').disabled=s==='connecting'||s==='connected';$('bdis').disabled=s!=='connected';showErr(m)}
+
+function resetData(){Object.assign(T,{bv:null,bp:null,pf:null,pt:null,lc:null,up:null,fw:null,lt:null,src:''});S.rms=null;S.samples=null;S.peak=0;S.hist.fill(0);S.lat=[];S.last=0;$('lr').textContent='N/A';setCls(null)}
+
+
+
+/* ---------- packets ---------- */
+
+function onPacket(p,src){
+
+  if(!p||typeof p!=='object')return;const now=Date.now();S.last=now;
+
+  if(p.type==='telemetry'){T.src=src;T.lt=now;
+
+    if(num(p.battery_voltage)!=null)T.bv=p.battery_voltage;if(num(p.battery_percent)!=null)T.bp=Math.max(0,Math.min(100,p.battery_percent));
+
+    if(num(p.free_psram)!=null)T.pf=p.free_psram;if(num(p.total_psram)!=null)T.pt=p.total_psram;
+
+    if(num(p.uptime_ms)!=null)T.up=p.uptime_ms;if(typeof p.firmware==='string')T.fw=p.firmware.slice(0,24);
+
+    if(num(p.latency_ms)!=null){T.lc=p.latency_ms}
+
+    if(num(p.rms)!=null){const r=Math.max(0,p.rms);S.rms=r;S.hist.push(r);S.hist.shift();S.peak=Math.max(S.peak,r)}
+
+    S.samples=Array.isArray(p.samples)&&p.samples.length>1?(a=>a.every(x=>num(x)!=null)?a:null)(p.samples.slice(0,2048)):null;
+
+  }else if(p.type==='detection'){
+
+    const k=String(p.event||'').toLowerCase().replace(/\s+/g,'\_');const c=CLS[k];if(!c||num(p.confidence)==null)return;
+
+    const key=k+'|'+(p.timestamp??'')+'|'+p.confidence;if(S.seen[key]&&now-S.seen[key]<1500)return;for(const q in S.seen)if(now-S.seen[q]>3000)delete S.seen[q];S.seen[key]=now;
+
+    const lat=num(p.latency_ms);
+
+    addEvent({t:now,k,conf:p.confidence,lat,hap:typeof p.haptic_pattern==='string'?p.haptic_pattern.slice(0,32):'N/A',src});setCls(k,p.confidence,now,p.haptic_pattern)
+
+  }else if(p.type==='ack'&&typeof p.command==='string'&&S.pend[p.command]){
+
+    const o=S.pend[p.command];clearTimeout(o.to);delete S.pend[p.command];
+
+    const rt=Math.round(performance.now()-o.t0);$('lr').textContent=rt+' ms';
+
+    done(o.btn,p.status==='success',p.status==='success'?'Acknowledged by device ('+rt+' ms round-trip)':'Device reported: '+String(p.status).slice(0,40))}
+
+}
+
+function parseLine(l){try{onPacket(JSON.parse(l),'device')}catch{console.warn('Malformed line ignored')}}
+
+
+
+/* ---------- events ---------- */
+
+function addEvent(e){S.ev.unshift(e);if(S.ev.length>500)S.ev.pop();renderLog(true)}
+
+function renderLog(anim){const f=$('flt').value;const rows=S.ev.filter(e=>!f||CLS[e.k].n===f);$('emp').style.display=rows.length?'none':'block';$('emp').textContent=S.ev.length?'No events match this filter.':'No events yet. Enable Demo Mode or connect a device.';$('cnt').textContent=(f?rows.length+' of ':'')+S.ev.length+' events';
+
+  $('tb').innerHTML=rows.map(e=>`<tr class="${anim&&e===S.ev[0]?'new':''}"><td class="mono">${ts(e.t)}</td><td><span class="dot" style="display:inline-block;background:${CLS[e.k].c};margin-right:8px"></span>${CLS[e.k].n}</td><td class="mono">${(e.conf*100).toFixed(1)}%</td><td class="mono">${e.lat==null?'N/A':e.lat+' ms'}</td><td class="mono">${esc(e.hap)}</td><td><span class="tag ${e.src==='demo'?'d':'l'}">${e.src==='demo'?'DEMO · SIMULATED':'DEVICE'}</span></td></tr>`).join('')}
+
+function setCls(k,conf,t,hap){const a=$('ai');a.classList.remove('alert');clearTimeout(S.clsT);
+
+  if(!k){a.style.setProperty('--ac','#00D9FF');$('cls').textContent='Awaiting AI Classification';$('cst2').textContent='—';$('cts').textContent='—';$('chp').textContent='—';$('cf').textContent='—';$('rf').style.strokeDashoffset=326.7;return}
+
+  if(k==='processing'){$('cls').textContent='Processing…';$('cst2').textContent='PROCESSING';$('cf').textContent='…';a.style.setProperty('--ac','#00D9FF');$('rf').style.strokeDashoffset=326.7;return}
+
+  const c=CLS[k];a.style.setProperty('--ac',c.c);void a.offsetWidth;a.classList.add('alert');$('cls').textContent=c.n;$('cst2').textContent=k==='unknown'?'UNKNOWN SOUND':'DETECTION CONFIRMED';
+
+  $('cf').textContent=(conf*100).toFixed(1)+'%';$('rf').style.strokeDashoffset=326.7*(1-conf);$('cts').textContent=ts(t);$('chp').textContent=typeof hap==='string'?hap:c.h;
+
+  clearTimeout(S.clsT);S.clsT=setTimeout(()=>{if(S.demo||S.conn==='connected'){$('cls').textContent='Listening…';$('cst2').textContent='LISTENING';a.style.setProperty('--ac','#00D9FF');a.classList.remove('alert');$('cf').textContent='—';$('rf').style.strokeDashoffset=326.7}},7000)}
+
+$('flt').onchange=()=>renderLog();
+
+$('bclr').onclick=()=>{if(S.ev.length&&confirm('Clear all '+S.ev.length+' events from history?')){S.ev=[];S.seen={};renderLog();logMsg('History cleared')}};
+
+$('bcsv').onclick=()=>{if(!S.ev.length){logMsg('Nothing to export');return}
+
+  const csv='timestamp_iso,event,confidence,latency_ms,haptic_pattern,source\n'+S.ev.map(e=>[new Date(e.t).toISOString(),CLS[e.k].n,e.conf.toFixed(3),e.lat??'',e.hap,e.src==='demo'?'DEMO_SIMULATED':'DEVICE'].join(',')).join('\n');
+
+  try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='hearme-events.csv';a.click()}catch{}
+
+  (navigator.clipboard?navigator.clipboard.writeText(csv):Promise.reject()).then(()=>logMsg('CSV download triggered · copy also placed on clipboard'),()=>logMsg('CSV download triggered (may be blocked in an embedded view)'))};
+
+function flash(m){$('hmsg').textContent=m}
+
+function logMsg(m){const e=$('lmsg');e.textContent=m;clearTimeout(logMsg.t);logMsg.t=setTimeout(()=>e.textContent='',5000)}
+
+
+
+/* ---------- haptics ---------- */
+
+document.querySelectorAll('.hb').forEach(b=>b.onclick=async()=>{
+
+  const c=b.dataset.c;if(b.classList.contains('busy'))return;
+
+  if(!S.demo&&S.conn!=='connected'){flash('No device connected. Connect hardware or enable Demo Mode.');return}
+
+  b.classList.add('busy');b.disabled=true;flash('Sending '+c+'…');
+
+  if(S.demo){setTimeout(()=>done(b,true,'DEMO · simulated response only. No physical motor was activated.',true),500);return}
+
+  try{if(dashboardSocket?.readyState===WebSocket.OPEN){dashboardSocket.send(JSON.stringify({type:'command',command:c}));}else if(typeof deviceSocket!=='undefined'&&deviceSocket?.readyState===WebSocket.OPEN){deviceSocket.send(JSON.stringify({type:'command',command:c}));}else{const w=S.port.writable.getWriter();await w.write(new TextEncoder().encode(JSON.stringify({type:'command',command:c})+'\n'));w.releaseLock();}
+
+    S.pend[c]={btn:b,t0:performance.now(),to:setTimeout(()=>{delete S.pend[c];done(b,false,'Sent, but no acknowledgment received (firmware may not support this command).')},2500)}}
+
+  catch(e){done(b,false,'Send failed: '+e.message)}});
+
+function done(b,ok,m,demo){b.classList.remove('busy');b.disabled=false;const h=$('hmsg');h.style.color=demo?'var(--am)':ok?'var(--gr)':'var(--rd)';h.textContent=(demo?'◆ ':ok?'✓ ':'✗ ')+m;setTimeout(()=>{h.style.color='';},4000)}
+
+function clearPend(m){for(const c in S.pend){const o=S.pend[c];clearTimeout(o.to);delete S.pend[c];done(o.btn,false,m)}}
+
+
+
+/* ---------- serial ---------- */
+
+$('bcon').onclick=async()=>{
+
+  if(!navigator.serial){setConn('error','Web Serial is unavailable. Use Chrome or Edge on desktop, over HTTPS or localhost, and make sure the page is not embedded in a restricted frame.');return}
+
+  if(S.conn==='connecting'||S.conn==='connected')return;
+
+  if(S.demo){if(!confirm('Demo Mode is on. Switch to Live Hardware Mode? Simulated data will stop.'))return;setDemo(false)}
+
+  setConn('connecting');
+
+  try{const port=await navigator.serial.requestPort();await port.open({baudRate:+$('baud').value});S.port=port;S.since=Date.now();resetData();setConn('connected');readLoop(port)}
+
+  catch(e){S.port=null;setConn(e.name==='NotFoundError'?'disconnected':'error',e.name==='NotFoundError'?'':'Could not open port: '+e.message)}};
+
+async function readLoop(port){const dec=new TextDecoder();let buf='';
+
+  try{while(port.readable&&S.port===port){const r=port.readable.getReader();S.reader=r;
+
+    try{for(;;){const{value,done}=await r.read();if(done)break;buf+=dec.decode(value,{stream:true});let i;while((i=buf.indexOf('\n'))>=0){const l=buf.slice(0,i).trim();buf=buf.slice(i+1);if(l)parseLine(l)}if(buf.length>65536)buf=''}}finally{r.releaseLock()}}}
+
+  catch(e){if(S.port===port)lost('Device read error: '+e.message)}
+
+  if(S.port===port)lost('Device disconnected unexpectedly.')}
+
+async function lost(m){const p=S.port;S.port=null;S.reader=null;clearPend('Connection lost before acknowledgment.');try{await p.close()}catch{}setConn('error',m)}
+
+$('bdis').onclick=async()=>{const p=S.port;if(!p)return;S.port=null;clearPend('Disconnected before acknowledgment.');try{await S.reader?.cancel()}catch{}S.reader=null;try{await p.close()}catch{}setConn('disconnected')};
+
+navigator.serial?.addEventListener('disconnect',e=>{if(S.port&&e.target===S.port)lost('USB device was unplugged.')});
+
+
+
+/* ---------- demo engine (simulated; never labelled as hardware) ---------- */
+
+let dI=0,burst=0,gen=0;const dT=new Set();
+
+function later(fn,ms,g){const id=setTimeout(()=>{dT.delete(id);if(g===gen&&S.demo)fn()},ms);dT.add(id)}
+
+function stopDemo(){gen++;clearInterval(dI);dI=0;dT.forEach(clearTimeout);dT.clear();burst=0}
+
+function setDemo(on){
+
+  if(on===S.demo)return;
+
+  if(on&&S.conn==='connected'&&!confirm('A device is connected. Enable Demo Mode and disconnect it?'))return;
+
+  if(on&&S.conn==='connected')$('bdis').onclick();
+
+  stopDemo();S.demo=on;document.body.classList.toggle('demo',on);$('bdemo').textContent='Demo Mode: '+(on?'On':'Off');$('bdemo').setAttribute('aria-pressed',on);resetData();
+
+  if(!on)return;
+
+  const g=gen,d={v:4.14,start:Date.now()};S.hist.fill(0.05);$('cls').textContent='Listening…';$('cst2').textContent='LISTENING';
+
+  dI=setInterval(()=>{d.v=Math.max(3.3,d.v-0.000002);burst*=0.88;
+
+    const rms=+(0.035+Math.random()*0.03+burst*(0.6+Math.random()*0.4)).toFixed(4);
+
+    const free=Math.round(5.4e6+Math.sin(Date.now()/4000)*2.5e5+Math.random()*4e4);
+
+    onPacket({type:'telemetry',firmware:'demo-sim',uptime_ms:Date.now()-d.start,battery_voltage:+d.v.toFixed(3),battery_percent:Math.round(Math.max(0,Math.min(100,(d.v-3.3)/0.9*100))),free_psram:free,total_psram:8388608,rms,latency_ms:Math.round(96+Math.random()*40+burst*30)},'demo')},100);
+
+  const sched=()=>later(()=>{const r=Math.random(),k=r<.3?'doorbell':r<.55?'name_call':r<.75?'fire_alarm':'unknown';
+
+    burst=k==='fire_alarm'?.5:k==='unknown'?.18:.34;setCls('processing');
+
+    later(()=>{const lo={doorbell:.85,name_call:.78,fire_alarm:.88,unknown:.4}[k],hi={doorbell:.97,name_call:.93,fire_alarm:.99,unknown:.6}[k];
+
+      onPacket({type:'detection',event:k,confidence:+(lo+Math.random()*(hi-lo)).toFixed(3),latency_ms:Math.round(100+Math.random()*60),haptic_pattern:CLS[k].h,timestamp:Date.now()},'demo');burst=.5;sched()},700,g)},3500+Math.random()*4500,g);
+
+  later(sched,1200,g)}
+
+$('bdemo').onclick=()=>setDemo(!S.demo);
+
+
+
+/* ---------- UI loop ---------- */
+
+const fsFail=()=>{showErr('Full screen is unavailable here (blocked by the browser or an embedded view). Open the page directly.');setTimeout(()=>{if(S.conn!=='error')showErr('')},5000)};
+
+const fsCall=f=>{try{const p=f();p&&p.catch&&p.catch(fsFail)}catch{fsFail()}};
+
+$('bpres').onclick=()=>{const on=document.body.classList.toggle('pres');$('bpres').textContent=on?'Exit presentation':'Presentation';$('bpres').setAttribute('aria-pressed',on);
+
+  if(on&&!document.fullscreenElement&&document.documentElement.requestFullscreen)fsCall(()=>document.documentElement.requestFullscreen());
+
+  if(!on&&document.fullscreenElement)fsCall(()=>document.exitFullscreen())};
+
+$('bfs').onclick=()=>fsCall(()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen());
+
+document.addEventListener('fullscreenchange',()=>{$('bfs').textContent=document.fullscreenElement?'Exit full screen':'Full screen'});
+
+$('bproto').onclick=()=>$('dlg').showModal();$('dx').onclick=()=>$('dlg').close();
+
+const fmtB=b=>b==null?'N/A':(b/1048576).toFixed(2)+' MB';
+
+setInterval(()=>{const live=S.demo||S.conn==='connected';
+
+  $('dur').textContent=S.conn==='connected'?dur(Date.now()-S.since):'—';$('lastp').textContent=S.last?ts0(S.last):'—';$('lpl').textContent=S.demo?'Sim. packet':'Last packet';
+
+  $('bv').textContent=T.bv==null?'N/A':T.bv.toFixed(2);$('bp').textContent=T.bp==null?(T.bv==null?'N/A':'Unavailable (no calibration)'):T.bp+'%';$('bbar').style.width=(T.bp||0)+'%';$('bbar').style.background=T.bp!=null&&T.bp<20?'var(--rd)':'var(--gr)';
+
+  const bs=$('bsrc');bs.textContent=T.src==='demo'?'DEMO · SIMULATED':T.src?'DEVICE':'—';bs.className='tag '+(T.src==='demo'?'d':T.src?'l':'');
+
+  $('pf').textContent=fmtB(T.pf);$('pt').textContent=fmtB(T.pt);const u=T.pf!=null&&T.pt?(1-T.pf/T.pt)*100:null;$('pu').textContent=u==null?'N/A':u.toFixed(1)+'%';$('pbar').style.width=(u||0)+'%';
+
+  const L=S.lat;$('lc').textContent=T.lc==null?'N/A':T.lc;$('la').textContent=L.length?(L.reduce((a,b)=>a+b,0)/L.length).toFixed(0)+' ms':'N/A';$('lm').textContent=L.length?Math.max(...L)+' ms':'N/A';
+
+  const fresh=S.last&&Date.now()-S.last<3000;const hs=$('hs');hs.textContent=!live?(S.last?'OFFLINE':'NO DATA'):!S.last?'AWAITING DATA':fresh?(S.demo?'NOMINAL · DEMO':'TELEMETRY OK'):'STALE';hs.style.color=!live?'var(--mut)':fresh?'var(--gr)':'var(--am)';
+
+  $('fw').textContent=T.fw||'N/A';$('up').textContent=T.up==null?'N/A':dur(T.up);$('lt').textContent=T.lt?ts(T.lt):'N/A';
+
+  S.peak*=0.985;const r=S.rms;$('rms').textContent=r==null?'N/A':r.toFixed(3);$('pk').textContent=r==null?'N/A':S.peak.toFixed(3);
+
+  const sg=$('sig');sg.textContent=r==null?(live?'Awaiting data':'No source'):r<.005?'No Signal':r<.03?'Low Signal':r<.12?'Listening':'Signal Detected';sg.style.color=r!=null&&r>=.12?'var(--gr)':'';
+
+  const w=$('wtag');w.textContent=S.demo?'DEMO · SIMULATED WAVEFORM':S.conn==='connected'?(S.samples?'LIVE · DEVICE SAMPLES':'RMS TELEMETRY TRACE · NO RAW SAMPLES'):'NO SOURCE';w.className='tag '+(S.demo?'d':S.conn==='connected'?'l':'')},250);
+
+
+
+const cv=$('cv'),cx=cv.getContext('2d');let W=0,H=0;
+
+new ResizeObserver(()=>{const d=devicePixelRatio||1;W=cv.clientWidth;H=cv.clientHeight;cv.width=W*d;cv.height=H*d;cx.setTransform(d,0,0,d,0,0)}).observe(cv);
+
+function frame(t){cx.clearRect(0,0,W,H);cx.strokeStyle='#2a364a';cx.lineWidth=1;cx.beginPath();for(let i=1;i<4;i++){cx.moveTo(0,H*i/4);cx.lineTo(W,H*i/4)}cx.stroke();
+
+  const live=S.demo||S.conn==='connected';
+
+  if(!live||S.rms==null){cx.fillStyle='#8b9bb4';cx.font='13px '+getComputedStyle(document.body).fontFamily;cx.textAlign='center';cx.fillText(live?'Awaiting audio telemetry…':'No signal source — connect a device or enable Demo Mode',W/2,H/2)}
+
+  else{cx.strokeStyle=S.demo?'#FFB547':'#00D9FF';cx.lineWidth=1.8;cx.shadowColor=cx.strokeStyle;cx.shadowBlur=8;cx.beginPath();
+
+    if(S.samples&&!S.demo){const s=S.samples,m=Math.max(1,...s.map(Math.abs));s.forEach((v,i)=>{const x=i/(s.length-1)*W,y=H/2-v/m*H*.45;i?cx.lineTo(x,y):cx.moveTo(x,y)})}
+
+    else if(S.demo){const n=Math.floor(W/2);for(let i=0;i<n;i++){const a=S.hist[Math.floor(i/n*S.hist.length)];const y=H/2+Math.sin(i*.55+t/55)*Math.min(.48,a*2.4)*H*(.6+.4*Math.sin(i*.13+t/90));i?cx.lineTo(i*2,y):cx.moveTo(0,y)}}
+
+    else{S.hist.forEach((v,i)=>{const x=i/(S.hist.length-1)*W,y=H-8-Math.min(1,v/.5)*(H-16);i?cx.lineTo(x,y):cx.moveTo(x,y)})}
+
+    cx.stroke();cx.shadowBlur=0}
+
+  const tgt=S.rms==null?0:Math.min(1,S.rms/.4);S.vu+=(tgt-S.vu)*.35;$('vui').style.width=S.vu*100+'%';$('vup').style.left=Math.min(99.5,S.peak/.4*100)+'%';requestAnimationFrame(frame)}
+
+requestAnimationFrame(frame);
+
+setConn('disconnected');renderLog();setCls(null);
+
+
+
+/* ---------- HearMe Wi-Fi + SQLite integration ---------- */
+let deviceSocket=null, dashboardSocket=null, inferenceWindows=0, confirmedDetections=0, lastTelemetrySave=0;
+async function api(path, options={}) { const r=await fetch('/api'+path,{headers:{'Content-Type':'application/json'},...options}); if(!r.ok) throw new Error((await r.text())||r.statusText); return r.status===204?null:r.json(); }
+function updateCounts(){ $('inferCount').textContent=inferenceWindows.toLocaleString(); $('detectCount').textContent=confirmedDetections.toLocaleString(); }
+async function loadSavedData(){
+ try { const d=await api('/stats'); $('dbStatus').textContent='Connected'; $('dbEvents').textContent=d.detections; inferenceWindows=d.inferenceWindows||0; confirmedDetections=d.detections||0; updateCounts();
+   const rows=await api('/detections?limit=200'); S.ev=rows.map(x=>({t:new Date(x.created_at).getTime(),k:x.event,conf:x.confidence,lat:x.latency_ms,hap:x.haptic_pattern||'N/A',src:x.source||'device'})).filter(x=>CLS[x.k]); renderLog();
+ } catch(e){$('dbStatus').textContent='Offline';logMsg('Database unavailable: '+e.message)}
+}
+function connectDashboardSocket(){
+ const proto=location.protocol==='https:'?'wss:':'ws:'; dashboardSocket=new WebSocket(`${proto}//${location.host}/dashboard`);
+ dashboardSocket.onopen=()=>{ $('wifiStatus').textContent='Server online'; };
+ dashboardSocket.onmessage=e=>{try{const p=JSON.parse(e.data);if(p.type==='device_status'){$('wifiStatus').textContent=p.connected?'Connected':'Waiting';$('wifiIp').textContent=p.ip||'N/A';$('wifiRssi').textContent=p.rssi==null?'N/A':p.rssi+' dBm';}else if(p.type==='telemetry'||p.type==='detection'||p.type==='inference'||p.type==='ack'){onPacket(p,'wifi');}}catch(err){console.warn(err)}};
+ dashboardSocket.onclose=()=>{ $('wifiStatus').textContent='Offline'; setTimeout(connectDashboardSocket,2500); };
+}
+async function persistPacket(p,src){
+ if(src==='demo')return;
+ try {
+  if(p.type==='inference'){inferenceWindows=Number(p.total_inferences??(inferenceWindows+1));updateCounts();await api('/inference',{method:'POST',body:JSON.stringify({...p,source:src})});}
+  else if(p.type==='detection'){confirmedDetections++;updateCounts();await api('/detections',{method:'POST',body:JSON.stringify({...p,source:src})});}
+  else if(p.type==='telemetry' && Date.now()-lastTelemetrySave>1000){lastTelemetrySave=Date.now();await api('/telemetry',{method:'POST',body:JSON.stringify({...p,source:src})});}
+  else if(p.type==='ack'){await api('/commands/log',{method:'POST',body:JSON.stringify({...p,source:src})});}
+ } catch(e){console.warn('Could not persist packet:',e.message)}
+}
+const originalOnPacket=onPacket;
+onPacket=function(p,src){
+ if(p?.type==='inference'){inferenceWindows=Number(p.total_inferences??(inferenceWindows+1));$('inferSource').textContent=src.toUpperCase();if(num(p.inference_ms??p.latency_ms)!=null){T.lc=p.inference_ms??p.latency_ms;S.lat.push(T.lc);if(S.lat.length>500)S.lat.shift();}updateCounts();persistPacket(p,src);return;}
+ const duplicate=p?.type==='detection'&&S.seen[String(p.event||'').toLowerCase()+'|'+(p.timestamp??'')+'|'+p.confidence]&&Date.now()-S.seen[String(p.event||'').toLowerCase()+'|'+(p.timestamp??'')+'|'+p.confidence]<1500; originalOnPacket(p,src); if(!duplicate)persistPacket(p,src);
+ if(p?.type==='telemetry'){
+  if(p.wifi_ip)$('wifiIp').textContent=p.wifi_ip;
+  if(num(p.wifi_rssi)!=null)$('wifiRssi').textContent=p.wifi_rssi+' dBm';
+  if(p.wifi_connected!==undefined)$('wifiStatus').textContent=p.wifi_connected?'Connected':'Disconnected';
+ }
+};
+async function sendDeviceCommand(command){
+ const packet={type:'command',command};
+ if(dashboardSocket?.readyState===WebSocket.OPEN){dashboardSocket.send(JSON.stringify(packet));return true;}
+ if(deviceSocket?.readyState===WebSocket.OPEN){deviceSocket.send(JSON.stringify(packet));return true;}
+ if(S.port?.writable){const w=S.port.writable.getWriter();try{await w.write(new TextEncoder().encode(JSON.stringify(packet)+'\n'));}finally{w.releaseLock()}return true;}
+ return false;
+}
+// Route manual haptic commands through Wi-Fi when the device is connected over its socket.
+const originalHapticHandler=document.querySelectorAll('.hb');
+// The original USB handler remains available; Wi-Fi commands are exposed through a dedicated connect action.
+async function connectWifiDevice(){
+ if(dashboardSocket?.readyState!==WebSocket.OPEN){showErr('Dashboard server is not connected. Make sure Node.js server is running.');return;}
+ if($('wifiStatus').textContent!=='Connected') {flash('Waiting for ESP32 to connect to the HearMe server over Wi-Fi.');return;}
+ S.since=Date.now();setConn('connected');flash('ESP32 connected through Wi-Fi server relay.');
+}
+const wifiBtn=document.createElement('button');wifiBtn.id='bwifi';wifiBtn.className='pri';wifiBtn.textContent='Connect Wi-Fi';wifiBtn.onclick=connectWifiDevice;$('bcon').parentElement.insertBefore(wifiBtn,$('bcon'));
+// Restore experiment history and expose experiment snapshot controls.
+const expBtn=document.createElement('button');expBtn.textContent='Save Experiment';expBtn.onclick=async()=>{
+ const name=prompt('Experiment name (e.g. Doorbell test – living room)');if(!name?.trim())return;
+ try{const r=await api('/experiments',{method:'POST',body:JSON.stringify({name:name.trim(),notes:'Saved from HearMe dashboard',metadata:{mode:S.demo?'demo':deviceSocket?.readyState===WebSocket.OPEN?'wifi':S.port?'usb':'offline',inferenceWindows,confirmedDetections,firmware:T.fw}})});logMsg('Experiment saved: '+r.id)}catch(e){logMsg('Save failed: '+e.message)}
+};$('bproto').parentElement.insertBefore(expBtn,$('bproto'));
+const clearDbBtn=document.createElement('button');clearDbBtn.textContent='Clear Saved Events';clearDbBtn.onclick=async()=>{if(!confirm('Delete all saved detection events from SQLite? This cannot be undone.'))return;try{const r=await api('/detections',{method:'DELETE'});S.ev=[];confirmedDetections=0;updateCounts();renderLog();$('dbEvents').textContent='0';logMsg(`Deleted ${r.deleted} saved events from SQLite`);}catch(e){logMsg('Database clear failed: '+e.message)}};$('bproto').parentElement.insertBefore(clearDbBtn,$('bproto'));
+const exportDbBtn=document.createElement('button');exportDbBtn.textContent='Export Data';exportDbBtn.onclick=async()=>{try{const data=await api('/export');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='hearme-database-export.json';a.click();URL.revokeObjectURL(a.href);}catch(e){logMsg('Export failed: '+e.message)}};$('bproto').parentElement.insertBefore(exportDbBtn,$('bproto'));
+
+const knockingBtn=document.createElement('button');knockingBtn.className='hb';knockingBtn.dataset.c='test_knocking';knockingBtn.innerHTML='<span>TEST KNOCKING HAPTIC<small>Command: test_knocking</small></span>';$('hmsg').parentElement.insertBefore(knockingBtn,$('hmsg'));knockingBtn.onclick=async()=>{if(S.conn!=='connected'&&!S.demo){flash('Connect a device first.');return;}try{if(S.demo){done(knockingBtn,true,'DEMO · simulated response only.',true);return;}if(dashboardSocket?.readyState===WebSocket.OPEN)dashboardSocket.send(JSON.stringify({type:'command',command:'test_knocking'}));else if(S.port?.writable){const w=S.port.writable.getWriter();await w.write(new TextEncoder().encode(JSON.stringify({type:'command',command:'test_knocking'})+'\n'));w.releaseLock();}else throw new Error('No active transport');flash('Knocking test command sent; waiting for ACK.');}catch(e){flash(e.message)}};
+const historyBtn=document.createElement('button');historyBtn.textContent='Experiments';historyBtn.onclick=async()=>{try{const rows=await api('/experiments');alert(rows.length?rows.map(x=>`${x.id}. ${x.name} — ${new Date(x.created_at).toLocaleString()}`).join('\n'):'No saved experiments yet.')}catch(e){logMsg(e.message)}};$('bproto').parentElement.insertBefore(historyBtn,$('bproto'));
+$('bdis').addEventListener('click',()=>{if(!S.port&&S.conn==='connected'){clearPend('Wi-Fi dashboard disconnected.');setConn('disconnected');}});
+loadSavedData();connectDashboardSocket();
+</script>
+
+</body>
+</html>
